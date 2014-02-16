@@ -49,3 +49,8 @@ sequence1 d1 g1 g2 = \t -> if t <= d1 then g1 t else g2 t
 after :: (Num a, Ord t) => t -> (t -> a) -> t -> a
 after d = sequence1 d (const 0)
 
+type Pattern = (Double, Double -> Double)
+
+sequenceP :: [Pattern] -> (Double -> Double)
+sequenceP [] = const 0
+sequenceP ((d,g):ps) = sequence1 d g $ sequenceP ps
