@@ -14,22 +14,14 @@ import Data.IORef
 import Data.Time.Clock
 import System.IO.Unsafe 
 
--- minimal complete definition: streamEval
 class AudioStream a where
-    
     streamEval :: a -> Double -> Double
-
-    discrete :: Double -> Double -> a -> [Double]
-    discrete t0 dt g = streamEval g t0 : discrete (t0 + dt) dt g 
-
-    writeStream8 :: FilePath -> Double -> Double -> a -> IO ()
-    writeStream8 p f t g = let st = take (floor (t*f)) $ discrete 0 (1/f) g
-                       in encodeFile p $ map quantize8 st
 
 instance AudioStream (Double -> Double) where
     streamEval = id
 
-combine :: (AudioStream a, AudioStream b) => (Double -> Double -> Double) -> a -> b -> Double -> Double
+combine :: (AudioStream a, AudioStream b) => 
+    (Double -> Double -> Double) -> a -> b -> Double -> Double
 combine op u v = \t -> streamEval u t `op` streamEval v t
 
 infixr |+| 
@@ -39,6 +31,13 @@ infixr |+|
 infixr |*| 
 (|*|) :: (AudioStream a, AudioStream b) => a -> b -> Double -> Double
 (|*|) = combine (*)
+
+discrete :: AudioStream a => Double -> Double -> a -> [Double]
+discrete t0 dt g = streamEval g t0 : discrete (t0 + dt) dt g 
+
+writeStream8 :: AudioStream a => FilePath -> Double -> Double -> a -> IO ()
+writeStream8 p f t g = let st = take (floor (t*f)) $ discrete 0 (1/f) g
+                       in encodeFile p $ map quantize8 st
 
 constd :: Double -> Double -> Double
 constd = const
